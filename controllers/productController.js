@@ -46,8 +46,11 @@ const addProduct = async (req, res) => {
       no_of_gems,
       purity,
       weight,
+      gold_weight,
+      making_charges,
     } = req.body;
 
+    let certification_file = null;
     let productImages = [];
 
     const vendor = await Vendor.findByPk(vendor_id);
@@ -63,12 +66,14 @@ const addProduct = async (req, res) => {
     const existingProduct = await Product.findOne({
       where: { product_name },
     });
+    
     if (existingProduct) {
       return res.status(400).json({ error: "Product already exists" });
     }
 
-    if (req.files && req.files.length > 0) {
+    if (req.files && req.files.length > 0 || req.file) {
       productImages = await uploadToCloudinary(req.files, "products");
+      certification_file = await uploadToCloudinary(req.files, "products");
     }
 
     // Calculate Jewellery Price
@@ -105,6 +110,7 @@ const addProduct = async (req, res) => {
       purity,
       weight,
       p_images: productImages,
+      certification_file: certification_file,
     });
 
     res
@@ -672,12 +678,12 @@ const getRecentProducts = async (req, res) => {
   }
 };
 
- const calculateSellingPrice = (
+const calculateSellingPrice = (
   purity,
   gold_weight,
   making_charges,
   LatestGoldPrice
-) =>{
+) => {
   let pricePerGram;
   purity = parseInt(purity);
   // Determine the price per gram based on purity
@@ -719,56 +725,56 @@ const getRecentProducts = async (req, res) => {
 // Function to update product prices
 const updateOldProductPrices = async () => {
   try {
-      const latestGoldRate = await LatestGoldPrice();
-      if (!latestGoldRate) {
-        console.error("Gold price not available");
-        return;
-      }
-
-      const products = await Product.findAll({
-        where: { gold_type: { [Op.not]: null } }, // Update only gold-based products
-      });
-  
-      for (let product of products) {
-        const { gold_weight, making_charges, purity } = product;
-  
-        // Log the purity value for debugging
-        console.log(
-          `Updating product ID ${product.product_id}: purity=${purity}`
-        );
-  
-        if (gold_weight && making_charges && purity) {
-          // Convert purity to integer if it's a string
-          const purityValue = parseInt(purity, 10);
-  
-          // Recalculate the selling price and MRP
-          const prices = calculateSellingPrice(
-            purityValue,
-            gold_weight,
-            making_charges,
-            latestGoldRate
-          );
-  
-          // Update the product with the new selling price and MRP
-          product.selling_price = parseFloat(prices.selling_price).toFixed(2); // Round to 2 decimal places
-          product.mrp = parseFloat(prices.mrp).toFixed(2);
-          await product.save();
-  
-          console.log(
-            `Updated product ID ${product.product_id} with new prices.`
-          );
-        } else {
-          console.warn(
-            `Skipping product ID ${product.product_id} due to missing values.`
-          );
-        }
-      }
-  
-      console.log("All existing products updated successfully.");
-    } catch (error) {
-      console.error("Error updating product prices:", error.message);
+    const latestGoldRate = await LatestGoldPrice();
+    if (!latestGoldRate) {
+      console.error("Gold price not available");
+      return;
     }
-  };
+
+    const products = await Product.findAll({
+      where: { gold_type: { [Op.not]: null } }, // Update only gold-based products
+    });
+
+    for (let product of products) {
+      const { gold_weight, making_charges, purity } = product;
+
+      // Log the purity value for debugging
+      console.log(
+        `Updating product ID ${product.product_id}: purity=${purity}`
+      );
+
+      if (gold_weight && making_charges && purity) {
+        // Convert purity to integer if it's a string
+        const purityValue = parseInt(purity, 10);
+
+        // Recalculate the selling price and MRP
+        const prices = calculateSellingPrice(
+          purityValue,
+          gold_weight,
+          making_charges,
+          latestGoldRate
+        );
+
+        // Update the product with the new selling price and MRP
+        product.selling_price = parseFloat(prices.selling_price).toFixed(2);
+        product.mrp = parseFloat(prices.mrp).toFixed(2);
+        await product.save();
+
+        console.log(
+          `Updated product ID ${product.product_id} with new prices.`
+        );
+      } else {
+        console.warn(
+          `Skipping product ID ${product.product_id} due to missing values.`
+        );
+      }
+    }
+
+    console.log("All existing products updated successfully.");
+  } catch (error) {
+    console.error("Error updating product prices:", error.message);
+  }
+};
 
 module.exports = {
   addProduct,
@@ -785,5 +791,5 @@ module.exports = {
   getBestSellingProducts,
   getTrendingProducts,
   getRecentProducts,
-  updateOldProductPrices
+  updateOldProductPrices,
 };
