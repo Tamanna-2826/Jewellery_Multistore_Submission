@@ -52,8 +52,10 @@ const addProduct = async (req, res) => {
 
     let certification_file = null;
     let productImages = [];
-
+    console.log("REQ BODY : ", req.body);
+    console.log("VENDOR ID : ",)
     const vendor = await Vendor.findByPk(vendor_id);
+    console.log("VENDOR : ", vendor, " : ", vendor_id);
     if (!vendor) {
       return res.status(400).json({ error: "Vendor not found" });
     }
@@ -66,14 +68,28 @@ const addProduct = async (req, res) => {
     const existingProduct = await Product.findOne({
       where: { product_name },
     });
-    
+
     if (existingProduct) {
       return res.status(400).json({ error: "Product already exists" });
     }
 
-    if (req.files && req.files.length > 0 || req.file) {
-      productImages = await uploadToCloudinary(req.files, "products");
-      certification_file = await uploadToCloudinary(req.files, "products");
+    // if ((req.files && req.files.length > 0) || req.file) {
+    //   productImages = await uploadToCloudinary(req.files, "products");
+    //   certification_file = await uploadToCloudinary(req.files, "products");
+    // }
+
+    if (req.files["p_images"]) {
+      productImages = await uploadToCloudinary(
+        req.files["p_images"],
+        "products"
+      );
+    }
+
+    if (req.files["certification_file"]) {
+      certification_file = await uploadToCloudinary(
+        req.files["certification_file"],
+        "products"
+      );
     }
 
     // Calculate Jewellery Price
@@ -110,8 +126,12 @@ const addProduct = async (req, res) => {
       purity,
       weight,
       p_images: productImages,
+      gold_weight,
+      making_charges,
       certification_file: certification_file,
     });
+
+    console.log("ADDED PRODUCT : ", addProduct);
 
     res
       .status(200)
@@ -711,7 +731,7 @@ const calculateSellingPrice = (
   const goldPrice = pricePerGram * gold_weight;
 
   // Calculate making charges as a percentage of the gold price
-  const makingCharges = (goldPrice * making_charges_percentage) / 100;
+  const makingCharges = (goldPrice * making_charges) / 100;
 
   // Final selling price
   const selling_price = goldPrice + makingCharges;
@@ -732,22 +752,15 @@ const updateOldProductPrices = async () => {
     }
 
     const products = await Product.findAll({
-      where: { gold_type: { [Op.not]: null } }, // Update only gold-based products
+      where: { gold_type: { [Op.not]: null } },
     });
 
     for (let product of products) {
       const { gold_weight, making_charges, purity } = product;
 
-      // Log the purity value for debugging
-      console.log(
-        `Updating product ID ${product.product_id}: purity=${purity}`
-      );
-
       if (gold_weight && making_charges && purity) {
-        // Convert purity to integer if it's a string
         const purityValue = parseInt(purity, 10);
 
-        // Recalculate the selling price and MRP
         const prices = calculateSellingPrice(
           purityValue,
           gold_weight,
@@ -755,21 +768,15 @@ const updateOldProductPrices = async () => {
           latestGoldRate
         );
 
-        // Update the product with the new selling price and MRP
         product.selling_price = parseFloat(prices.selling_price).toFixed(2);
         product.mrp = parseFloat(prices.mrp).toFixed(2);
         await product.save();
-
-        console.log(
-          `Updated product ID ${product.product_id} with new prices.`
-        );
       } else {
         console.warn(
           `Skipping product ID ${product.product_id} due to missing values.`
         );
       }
     }
-
     console.log("All existing products updated successfully.");
   } catch (error) {
     console.error("Error updating product prices:", error.message);

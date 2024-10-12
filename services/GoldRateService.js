@@ -8,12 +8,16 @@ const fetchGoldPrice = async () => {
       headers: { "x-access-token": "goldapi-2icthsm1j0s8l6-io" },
     });
 
+    //console.log("\nRESPONSE : ",response)
+
     if (response.status !== 200) {
       console.error("Failed to fetch gold price from API:", response.statusText);
       return;
     }
 
     const goldData = response.data;
+
+   // console.log("goldData : ",goldData);
     
     // Store prices for each purity level
     await GoldRate.create({
@@ -37,7 +41,7 @@ const fetchGoldPrice = async () => {
 // Fetch the latest gold price
 const LatestGoldPrice = async () => {
   const latestGoldPrice = await GoldRate.findOne({
-    order: [["created_at", "DESC"]],
+    order: [["createdAt", "DESC"]],
   });
   return latestGoldPrice;
 };

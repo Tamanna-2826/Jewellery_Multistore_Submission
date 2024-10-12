@@ -6,7 +6,15 @@ const { fetchGoldPrice } = require("../services/GoldRateService");
 
 const upload = multer({ dest: "uploads/products/" });
 
-router.post("/add", upload.array("p_images"), productController.addProduct);
+//router.post("/add", upload.array("p_images"), productController.addProduct);
+router.post(
+  "/add", 
+  upload.fields([
+    { name: 'p_images', maxCount: 5 }, // Adjust the maxCount as needed
+    { name: 'certification_file', maxCount: 1 }
+  ]), 
+  productController.addProduct
+);
 
 router.get("/", productController.getAllProducts);
 
@@ -61,6 +69,5 @@ router.put("/update-gold-prices", async (req, res) => {
     });
   }
 });
-
 
 module.exports = router;
