@@ -52,10 +52,8 @@ const addProduct = async (req, res) => {
 
     let certification_file = null;
     let productImages = [];
-    console.log("REQ BODY : ", req.body);
-    console.log("VENDOR ID : ",)
+    
     const vendor = await Vendor.findByPk(vendor_id);
-    console.log("VENDOR : ", vendor, " : ", vendor_id);
     if (!vendor) {
       return res.status(400).json({ error: "Vendor not found" });
     }
@@ -131,7 +129,7 @@ const addProduct = async (req, res) => {
       certification_file: certification_file,
     });
 
-    console.log("ADDED PRODUCT : ", addProduct);
+    //console.log("ADDED PRODUCT : ", addProduct);
 
     res
       .status(200)
@@ -317,6 +315,9 @@ const getProductDetails = async (req, res) => {
         no_of_gems: product.no_of_gems,
         purity: product.purity,
         weight: product.weight,
+        gold_weight: product.gold_weight,                // Added gold_weight
+        making_charges: product.making_charges,          // Added making_charges
+        certification_file: product.certification_file,  // Added certification_file
         imageURLs: imageUrls,
       },
     });
@@ -471,6 +472,8 @@ const updateProduct = async (req, res) => {
       no_of_gems,
       purity,
       weight,
+      gold_weight,          // Set gold_weight
+      making_charges    // Set making_charges
     } = req.body;
 
     product.category_id = category_id;
@@ -490,6 +493,8 @@ const updateProduct = async (req, res) => {
     product.no_of_gems = no_of_gems;
     product.purity = purity;
     product.weight = weight;
+    product.gold_weight = gold_weight;           // Set gold_weight
+    product.making_charges = making_charges;     // Set making_charges
 
     const productImages = [...product.p_images];
 
@@ -500,6 +505,16 @@ const updateProduct = async (req, res) => {
         });
         productImages.push(result.public_id);
       }
+    }
+     // Upload certification file if provided
+     if (req.files["certification_file"]) {
+      const certificationFileResult = await cloudinary.uploader.upload(
+        req.files["certification_file"][0].path,
+        {
+          folder: "products",
+        }
+      );
+      product.certification_file = certificationFileResult.public_id;  // Set certification_file
     }
 
     if (req.body.existingImages) {
