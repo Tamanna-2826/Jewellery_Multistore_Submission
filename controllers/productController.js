@@ -476,25 +476,31 @@ const updateProduct = async (req, res) => {
       making_charges    // Set making_charges
     } = req.body;
 
-    product.category_id = category_id;
-    product.vendor_id = vendor_id;
-    product.product_name = product_name;
-    product.main_description = main_description;
-    product.mrp = mrp;
-    product.selling_price = selling_price;
-    product.vendor_price = vendor_price;
-    product.clasp_type = clasp_type;
-    product.gem_type = gem_type;
-    product.gem_color = gem_color;
-    product.occasion_type = occasion_type;
-    product.size = size;
-    product.basic_description = basic_description;
-    product.gold_type = gold_type;
-    product.no_of_gems = no_of_gems;
-    product.purity = purity;
-    product.weight = weight;
-    product.gold_weight = gold_weight;           // Set gold_weight
-    product.making_charges = making_charges;     // Set making_charges
+     // Update fields
+     product.category_id = category_id;
+     product.vendor_id = vendor_id;
+     product.product_name = product_name;
+     product.main_description = main_description;
+     product.vendor_price = vendor_price;
+     product.clasp_type = clasp_type;
+     product.gem_type = gem_type;
+     product.gem_color = gem_color;
+     product.occasion_type = occasion_type;
+     product.size = size;
+     product.basic_description = basic_description;
+     product.gold_type = gold_type;
+     product.no_of_gems = no_of_gems;
+     product.purity = purity;
+     product.weight = weight;
+     product.gold_weight = gold_weight;
+     product.making_charges = making_charges;
+ 
+     // Check if purity, gold_weight, and making_charges are provided to recalculate selling price
+     if (purity && gold_weight && making_charges && LatestGoldPrice) {
+       const prices = calculateSellingPrice(purity, gold_weight, making_charges, LatestGoldPrice);
+       product.selling_price = parseFloat(prices.selling_price).toFixed(2);
+       product.mrp = parseFloat(prices.mrp).toFixed(2);
+     }
 
     const productImages = [...product.p_images];
 

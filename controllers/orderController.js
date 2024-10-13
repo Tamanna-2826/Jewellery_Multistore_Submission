@@ -6,6 +6,7 @@ const {
   Address,
   State,
   City,
+  Product 
 } = require("../models");
 
 const { sendEmail } = require("../helpers/emailHelper");
