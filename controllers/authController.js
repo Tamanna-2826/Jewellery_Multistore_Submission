@@ -89,6 +89,7 @@ const vendorLogin = async (req, res) => {
 };
 
 const adminLogin = async (req, res) => {
+  console.log("ADmin Logges In Called")
   const { email, password } = req.body;
   try {
     const admin = await Admin.findOne({ where: { email } });

@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const productController = require("../controllers/productController");
 const multer = require("multer");
-const { fetchGoldPrice } = require("../services/GoldRateService");
+const { fetchGoldPrice , LatestGoldPrice } = require("../services/GoldRateService");
 
 const upload = multer({ dest: "uploads/products/" });
 
@@ -53,11 +53,14 @@ router.get("/recent", productController.getRecentProducts);
 // Route to run fetchGoldPrice and updateOldProductPrices sequentially
 router.put("/update-gold-prices", async (req, res) => {
   try {
-    await fetchGoldPrice();
-    console.log("Gold prices fetched successfully.");
+    await LatestGoldPrice();
+    console.log("Gold prices fetched Fom DB successfully.");
 
-    await productController.updateOldProductPrices();
-    console.log("Product prices updated successfully.");
+    // await fetchGoldPrice();
+    // console.log("Gold prices fetched successfully.");
+
+    // await productController.updateOldProductPrices();
+    // console.log("Product prices updated successfully.");
 
     return res.status(200).json({
       message: "Gold prices fetched and product prices updated successfully.",

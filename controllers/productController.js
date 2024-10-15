@@ -33,9 +33,6 @@ const addProduct = async (req, res) => {
       vendor_id,
       product_name,
       main_description,
-      // mrp,
-      // selling_price,
-      vendor_price,
       clasp_type,
       gem_type,
       gem_color,
@@ -52,7 +49,7 @@ const addProduct = async (req, res) => {
 
     let certification_file = null;
     let productImages = [];
-    
+
     const vendor = await Vendor.findByPk(vendor_id);
     if (!vendor) {
       return res.status(400).json({ error: "Vendor not found" });
@@ -70,11 +67,6 @@ const addProduct = async (req, res) => {
     if (existingProduct) {
       return res.status(400).json({ error: "Product already exists" });
     }
-
-    // if ((req.files && req.files.length > 0) || req.file) {
-    //   productImages = await uploadToCloudinary(req.files, "products");
-    //   certification_file = await uploadToCloudinary(req.files, "products");
-    // }
 
     if (req.files["p_images"]) {
       productImages = await uploadToCloudinary(
@@ -94,15 +86,28 @@ const addProduct = async (req, res) => {
     let selling_price = 0;
     let mrp = 0;
 
-    if (gold_type && purity && gold_weight && LatestGoldPrice) {
-      const prices = calculateSellingPrice(
-        purity,
-        gold_weight,
-        making_charges,
-        LatestGoldPrice
-      );
-      selling_price = parseFloat(prices.selling_price).toFixed(2); // Round to 2 decimal places
-      mrp = parseFloat(prices.mrp).toFixed(2); // Round to 2 decimal places
+    if (gold_type && purity && gold_weight) {
+      try {
+        // Get the latest gold price
+        const latestGoldPrice = await LatestGoldPrice();
+        
+        if (!latestGoldPrice) {
+          throw new Error("Failed to fetch latest gold price");
+        }
+
+        const prices = calculateSellingPrice(
+          purity,
+          gold_weight,
+          making_charges,
+          latestGoldPrice
+        );
+        console.log("Calculated prices:", prices);
+        selling_price = prices.selling_price;
+        mrp = prices.mrp;
+      } catch (error) {
+        console.error("Error calculating selling price:", error.message);
+        return res.status(400).json({ error: error.message });
+      }
     }
 
     const newProduct = await Product.create({
@@ -112,7 +117,6 @@ const addProduct = async (req, res) => {
       main_description,
       mrp,
       selling_price,
-      vendor_price,
       clasp_type,
       gem_type,
       gem_color,
@@ -129,11 +133,9 @@ const addProduct = async (req, res) => {
       certification_file: certification_file,
     });
 
-    //console.log("ADDED PRODUCT : ", addProduct);
-
     res
       .status(200)
-      .json({ message: "Image uploaded Successfully ", newProduct });
+      .json({ message: "Product added successfully", newProduct });
   } catch (error) {
     console.error("Error creating product:", error.message);
     res.status(500).json({ error: "Internal Server Error" });
@@ -304,7 +306,7 @@ const getProductDetails = async (req, res) => {
         main_description: product.main_description,
         mrp: product.mrp,
         selling_price: product.selling_price,
-        vendor_price: product.vendor_price,
+        // vendor_price: product.vendor_price,
         clasp_type: product.clasp_type,
         gem_type: product.gem_type,
         gem_color: product.gem_color,
@@ -315,9 +317,9 @@ const getProductDetails = async (req, res) => {
         no_of_gems: product.no_of_gems,
         purity: product.purity,
         weight: product.weight,
-        gold_weight: product.gold_weight,                // Added gold_weight
-        making_charges: product.making_charges,          // Added making_charges
-        certification_file: product.certification_file,  // Added certification_file
+        gold_weight: product.gold_weight, // Added gold_weight
+        making_charges: product.making_charges, // Added making_charges
+        certification_file: product.certification_file, // Added certification_file
         imageURLs: imageUrls,
       },
     });
@@ -461,7 +463,7 @@ const updateProduct = async (req, res) => {
       main_description,
       mrp,
       selling_price,
-      vendor_price,
+      //vendor_price,
       clasp_type,
       gem_type,
       gem_color,
@@ -472,35 +474,40 @@ const updateProduct = async (req, res) => {
       no_of_gems,
       purity,
       weight,
-      gold_weight,          // Set gold_weight
-      making_charges    // Set making_charges
+      gold_weight, // Set gold_weight
+      making_charges, // Set making_charges
     } = req.body;
 
-     // Update fields
-     product.category_id = category_id;
-     product.vendor_id = vendor_id;
-     product.product_name = product_name;
-     product.main_description = main_description;
-     product.vendor_price = vendor_price;
-     product.clasp_type = clasp_type;
-     product.gem_type = gem_type;
-     product.gem_color = gem_color;
-     product.occasion_type = occasion_type;
-     product.size = size;
-     product.basic_description = basic_description;
-     product.gold_type = gold_type;
-     product.no_of_gems = no_of_gems;
-     product.purity = purity;
-     product.weight = weight;
-     product.gold_weight = gold_weight;
-     product.making_charges = making_charges;
- 
-     // Check if purity, gold_weight, and making_charges are provided to recalculate selling price
-     if (purity && gold_weight && making_charges && LatestGoldPrice) {
-       const prices = calculateSellingPrice(purity, gold_weight, making_charges, LatestGoldPrice);
-       product.selling_price = parseFloat(prices.selling_price).toFixed(2);
-       product.mrp = parseFloat(prices.mrp).toFixed(2);
-     }
+    // Update fields
+    product.category_id = category_id;
+    product.vendor_id = vendor_id;
+    product.product_name = product_name;
+    product.main_description = main_description;
+    //product.vendor_price = vendor_price;
+    product.clasp_type = clasp_type;
+    product.gem_type = gem_type;
+    product.gem_color = gem_color;
+    product.occasion_type = occasion_type;
+    product.size = size;
+    product.basic_description = basic_description;
+    product.gold_type = gold_type;
+    product.no_of_gems = no_of_gems;
+    product.purity = purity;
+    product.weight = weight;
+    product.gold_weight = gold_weight;
+    product.making_charges = making_charges;
+
+    // Check if purity, gold_weight, and making_charges are provided to recalculate selling price
+    if (purity && gold_weight && making_charges && LatestGoldPrice) {
+      const prices = calculateSellingPrice(
+        purity,
+        gold_weight,
+        making_charges,
+        LatestGoldPrice
+      );
+      product.selling_price = parseFloat(prices.selling_price).toFixed(2);
+      product.mrp = parseFloat(prices.mrp).toFixed(2);
+    }
 
     const productImages = [...product.p_images];
 
@@ -512,15 +519,15 @@ const updateProduct = async (req, res) => {
         productImages.push(result.public_id);
       }
     }
-     // Upload certification file if provided
-     if (req.files["certification_file"]) {
+    // Upload certification file if provided
+    if (req.files["certification_file"]) {
       const certificationFileResult = await cloudinary.uploader.upload(
         req.files["certification_file"][0].path,
         {
           folder: "products",
         }
       );
-      product.certification_file = certificationFileResult.public_id;  // Set certification_file
+      product.certification_file = certificationFileResult.public_id; // Set certification_file
     }
 
     if (req.body.existingImages) {
@@ -718,51 +725,54 @@ const getRecentProducts = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
 const calculateSellingPrice = (
   purity,
   gold_weight,
   making_charges,
-  LatestGoldPrice
+  latestGoldPrice
 ) => {
+
   let pricePerGram;
+
   purity = parseInt(purity);
   // Determine the price per gram based on purity
   if (purity === 24) {
-    pricePerGram = LatestGoldPrice.price_gram_24k;
+    pricePerGram = latestGoldPrice.price_gram_24k;
   } else if (purity === 22) {
-    pricePerGram = LatestGoldPrice.price_gram_22k;
+    pricePerGram = latestGoldPrice.price_gram_22k;
   } else if (purity === 21) {
-    pricePerGram = LatestGoldPrice.price_gram_21k;
+    pricePerGram = latestGoldPrice.price_gram_21k;
   } else if (purity === 20) {
-    pricePerGram = LatestGoldPrice.price_gram_20k;
+    pricePerGram = latestGoldPrice.price_gram_20k;
   } else if (purity === 18) {
-    pricePerGram = LatestGoldPrice.price_gram_18k;
+    pricePerGram = latestGoldPrice.price_gram_18k;
   } else if (purity === 16) {
-    pricePerGram = LatestGoldPrice.price_gram_16k;
+    pricePerGram = latestGoldPrice.price_gram_16k;
   } else if (purity === 14) {
-    pricePerGram = LatestGoldPrice.price_gram_14k;
+    pricePerGram = latestGoldPrice.price_gram_14k;
   } else if (purity === 10) {
-    pricePerGram = LatestGoldPrice.price_gram_10k;
+    pricePerGram = latestGoldPrice.price_gram_10k;
   } else {
     throw new Error("Invalid purity value provided");
   }
-
+  
+  if (isNaN(pricePerGram)) {
+    throw new Error(`Price per gram is not a number for purity ${purity}`);
+  }
   // Calculate the base price (gold price based on weight and purity)
   const goldPrice = pricePerGram * gold_weight;
 
   // Calculate making charges as a percentage of the gold price
   const makingCharges = (goldPrice * making_charges) / 100;
 
-  // Final selling price
-  const selling_price = goldPrice + makingCharges;
+   // Final selling price
+   const selling_price = Number((goldPrice + makingCharges).toFixed(2));
 
-  // Optionally, calculate MRP as a higher value (e.g., 10% higher)
-  const mrp = selling_price * 1.1;
+   // Optionally, calculate MRP as a higher value (e.g., 10% higher)
+   const mrp = Number((selling_price * 1.1).toFixed(2));
 
   return { selling_price, mrp };
-};
-
+}
 // Function to update product prices
 const updateOldProductPrices = async () => {
   try {

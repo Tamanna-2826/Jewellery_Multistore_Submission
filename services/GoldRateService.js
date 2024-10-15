@@ -43,6 +43,7 @@ const LatestGoldPrice = async () => {
   const latestGoldPrice = await GoldRate.findOne({
     order: [["createdAt", "DESC"]],
   });
+ 
   return latestGoldPrice;
 };
 

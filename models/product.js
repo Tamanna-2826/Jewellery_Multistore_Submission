@@ -72,10 +72,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DECIMAL,
         allowNull: false,
       },
-      vendor_price: {
-        type: DataTypes.DECIMAL,
-        allowNull: false,
-      },
+      // vendor_price: {
+      //   type: DataTypes.DECIMAL,
+      //   allowNull: false,
+      // },
       clasp_type: {
         type: DataTypes.STRING,
         allowNull: true,
