@@ -388,7 +388,7 @@ const handleStripeWebhook = async (req, res) => {
         force: false,
       });
 
-      const customerDetails = await User.findByPk(user_id);
+      const customer = await User.findByPk(user_id);
       const orderDate = new Date(order.order_date);
 
       const formattedOrderDate = `${orderDate.toLocaleDateString('en-US', {
@@ -397,25 +397,9 @@ const handleStripeWebhook = async (req, res) => {
         month: 'long',
       })} ${orderDate.getDate()}, ${orderDate.getFullYear()}`;
 
-      const customerHtmlContent = generateEmailTemplate({
-        title: 'Order Received!',
-        body: `
-          Dear ${customerDetails.first_name} ${customerDetails.last_name},<br><br>
-          Thank you for your order on Nishkar! Your order has been received with the following details:<br><br>
-          Order ID: ${order.order_id} <br>
-          Order Date: ${formattedOrderDate}<br>
-          Total Amount: ${totalPayable}<br><br>
-          Your order will be processed soon. You will receive an email once your order has been delivered.<br><br>
-          Best regards,<br>
-          Team Nishkar
-        `,
-      });
+      const customerContent =  generateOrderConfirmationEmail(customer,order,totalPayable)
 
-      await sendEmail({
-        to: customerDetails.email,
-        subject: 'Order Confirmation - Nishkar',
-        html: customerHtmlContent,
-      });
+      await sendEmail(customer.email,"Order Received!",customerContent)
 
       for (const item of cart.cartItems) {
         const product = await Product.findOne({
@@ -429,25 +413,9 @@ const handleStripeWebhook = async (req, res) => {
           ],
         });
 
-        const vendorHtmlContent = generateEmailTemplate({
-          title: 'New Order Received',
-          body: `
-            Dear ${product.vendor.first_name},<br><br>
-            You have received a new order on Nishkar.<br><br>
-            Customer Name: ${customerDetails.first_name} ${customerDetails.last_name}<br>
-            Product: ${product.product_name}<br>
-            Total Amount: ${totalPayable}<br><br>
-            Best regards,<br>
-            Team Nishkar
-          `,
-        });
-
-        await sendEmail({
-          to: product.vendor.email,
-          subject: 'New Order Notification - Nishkar',
-          html: vendorHtmlContent,
-        });
-      
+        const vendorContent = generateNewOrderNotificationForVendor(product.vendor, customer,product);
+        await  sendEmail(product.vendor.email, "You have received a new order on Nishkar.", vendorContent);
+   
       }
       try {
       } catch (error) {

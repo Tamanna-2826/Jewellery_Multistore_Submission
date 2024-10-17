@@ -1,8 +1,12 @@
 const express = require("express");
 const Sequelize = require("sequelize");
+const helmet = require("helmet");
+const cors = require("cors");
+
 const sequelizeConfig = require("./config/config.js");
 const sequelize = new Sequelize(sequelizeConfig.development);
-const cors = require("cors");
+
+
 // const timeout = require('express-timeout-handler');
 
 const authRoutes = require("./routes/authRoutes");
@@ -26,7 +30,9 @@ const countRoutes = require("./routes/countRoutes");
 
 const app = express();
 
+app.use(helmet());
 app.use(cors());
+
 app.use(express.json({ verify: (req, res, buf) => (req.rawBody = buf) }));
 
 app.use("/auth", authRoutes);

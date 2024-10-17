@@ -40,7 +40,10 @@ router.get(
 );
 router.put(
   "/update/:product_id",
-  upload.array("p_images"),
+  upload.fields([
+    { name: 'p_images', maxCount: 10 }, 
+    { name: 'certification_file', maxCount: 1 }
+  ]), 
   productController.updateProduct
 );
 

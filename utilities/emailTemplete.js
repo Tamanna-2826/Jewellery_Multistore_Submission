@@ -100,6 +100,7 @@ const generateOrderConfirmationEmail = (customer, order, totalPayable) => {
 };
 
 const generateNewOrderNotificationForVendor = (vendor, customer, product) => {
+
   return generateEmailTemplate({
     title: 'New Order Received',
     body: `
@@ -116,6 +117,7 @@ const generateNewOrderNotificationForVendor = (vendor, customer, product) => {
     `
   });
 };
+
 
 const generateVendorActivationEmail = (vendor, tempPassword) => {
   return generateEmailTemplate({
